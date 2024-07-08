@@ -3,56 +3,43 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from ReportProcessing.intradayDetailReport import read_intraday_details_report, extract_symbol_details
-from ReportProcessing.dailySummaryReport import read_daily_summary
+from ReportProcessing.intradayDetailReport import read_intraday_details, extract_symbol_details
+from ReportProcessing.dailySummaryReport import read_daily_summary, extract_symbol_summary
 from Util.pathsAndStockSets import set_stock_set, StockSet
 from Util.datesAndTimestamps import timestamp
 
 set_stock_set(StockSet.DEVELOPMENT)
 
-# Show each symbol as a single timeline (daily resolution)
-if False:
-    df = read_daily_summary()
+# Show each symbol as a single timeline for a day (5-minute resolution)
+if True:
+    intraday_details = read_intraday_details(timestamp('2024-06-03'))
     scaled_df = pd.DataFrame()
-    for symbol in df['symbol'].unique():
-        symbol_df = df[df['symbol'] == symbol].copy()
-        symbol_df['open'] /= symbol_df['open'].iloc[0]
+    for symbol in intraday_details['symbol'].unique():
+        symbol_df = extract_symbol_details(intraday_details, symbol)
+        opening_price_for_day = symbol_df['open'].iloc[0]
+        symbol_df['pct_change'] = 100 * (symbol_df['open'] / opening_price_for_day - 1)
         scaled_df = pd.concat([scaled_df, symbol_df])
-    fig = px.line(scaled_df, x='date', y='open', color='symbol')
+    fig = px.line(scaled_df, x='timestamp', y='pct_change', color='symbol')
     fig.show()
 
-# Show each symbol as a single timeline (5-minute resolution) -- add slider -- WORKS!
-if False:
-    df = read_intraday_details_report(timestamp('2024-06-03'))
-    scaled_df = pd.DataFrame()
+# Show each symbol as a single timeline (daily resolution), for % change from initial opening price
+# Also, include a slider that allows us to drill into the timeline
+if True:
+    daily_summary = read_daily_summary()
     fig = go.Figure()
-    for symbol in df['symbol'].unique():
-        symbol_df = df[df['symbol'] == symbol].copy()
-        symbol_df['open'] /= symbol_df['open'].iloc[0]
-        scaled_df = pd.concat([scaled_df, symbol_df])
-        fig.add_trace(go.Scatter(x=symbol_df['timestamp'], y=symbol_df['open']))
-    fig.update_layout(
-        xaxis=dict(rangeslider=dict(visible=True), type='date'))
+    for symbol in daily_summary['symbol'].unique():
+        symbol_df = extract_symbol_summary(daily_summary, symbol)
+        initial_open = symbol_df['open'].iloc[0]
+        symbol_df['pct_change'] = 100 * (symbol_df['close'] / initial_open - 1)
+        fig.add_trace(go.Scatter(x=symbol_df['timestamp'], y=symbol_df['pct_change'], name=symbol))
+    fig.update_layout(xaxis=dict(rangeslider=dict(visible=True), type='date'))
     fig.show()
 
-# Candlestick Chart
-if False:
-    df = read_intraday_details_report(timestamp('2024-06-03'))
-    symbol_details = extract_symbol_details(df, 'TSLA')
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.3,
-                        subplot_titles=('Bars', 'Volume'), row_width=[0.2, 0.5])
-    fig.add_trace(go.Candlestick(x=symbol_details['timestamp'], open=symbol_details['open'],
-                                 high=symbol_details['high'], low=symbol_details['low'],
-                                 close=symbol_details['close']),
-                  row=1, col=1)
-    fig.add_trace(go.Bar(x=symbol_details['timestamp'], y=symbol_details['volume'], showlegend=False),
-                  row=2, col=1)
-    fig.show()
-
+# Candlestick Chart with Volume
 if True:
     symbol = 'TSLA'
-    df = read_intraday_details_report(timestamp('2024-06-03'))
-    symbol_details = extract_symbol_details(df, symbol)
+    intraday_details = read_intraday_details(timestamp('2024-06-03'))
+    symbol_details = extract_symbol_details(intraday_details, symbol)
     candlesticks = go.Candlestick(x=symbol_details['timestamp'], open=symbol_details['open'],
                                   high=symbol_details['high'], low=symbol_details['low'],
                                   close=symbol_details['close'], name=symbol)
@@ -65,4 +52,3 @@ if True:
     fig.update_yaxes(secondary_y=True, title='Volume', showgrid=False)
     fig.update_layout(xaxis={'rangeslider': {'visible': False}})
     fig.show()
-

@@ -55,11 +55,10 @@ def get_symbols():
 
 base_path = os.environ['DayTradingDataFilesBasePath']
 # base_path = 'C:/Users/David/PycharmProjects/StockDataFiles/'
-
 # NOTE: You will need to set up this file hierarchy on your computer
 
 sp500_bar_files_path = base_path + 'BarFiles/'
-dev_bar_files_path =  base_path + 'BarFiles/DevSet/'
+dev_bar_files_path = base_path + 'BarFiles/DevSet/'
 
 
 # Create a full path to filename, based on our current stock_set

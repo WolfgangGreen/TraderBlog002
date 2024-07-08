@@ -1,33 +1,30 @@
 import pandas as pd
 import yfinance as yf
 
-from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 
-from TradingApis.alpacaClients import historical_client
 from ReportProcessing.dailySummaryReport import write_daily_summary
-from ReportProcessing.intradayDetailReport import write_intraday_detail_report
-
-from Util.pathsAndStockSets import StockSet, set_stock_set, get_symbols
+from ReportProcessing.intradayDetailReport import write_intraday_detail
+from TradingApis.alpacaClients import historical_client
 from Util.datesAndTimestamps import timestamp, date_string, trading_dates
+from Util.pathsAndStockSets import StockSet, set_stock_set, get_symbols
 
 set_stock_set(StockSet.DEVELOPMENT)
 
-data_source = 'yfinance'  # 'alpaca' or 'yfinance'
+data_source = 'yfinance'  # this can be 'alpaca' or 'yfinance'
 start_date = timestamp('2024-06-01')
-end_date = timestamp('2024-06-05')
+end_date = timestamp('2024-06-30')
 
 if data_source == 'Alpaca':
-    '''
     # Read the Daily Summary data and write to disk
-    request = StockBarsRequest(symbol_or_symbols=get_symbols(), timeframe=TimeFrame.Day, start=timestamp('2023-01-01'))
+    request = StockBarsRequest(symbol_or_symbols=get_symbols(), timeframe=TimeFrame.Day, start=timestamp('2023-07-01'))
     result = historical_client().get_stock_bars(request)
     result_df = result.df.reset_index(drop=False)
     result_df['date'] = result_df['timestamp'].map(lambda d: date_string(d))
     result_df['timestamp'] = result_df['timestamp'].map(lambda d: d.tz_convert('America/New_York'))
     result_df.set_index(['symbol', 'timestamp'], drop=True, inplace=True)
-    write_daily_summary_report(result_df)
-    '''
+    write_daily_summary(result_df)
 
     # Read the 5-minute Bars data and write to disk
     for report_start in trading_dates(start=start_date, end=end_date):
@@ -44,7 +41,7 @@ if data_source == 'Alpaca':
         columns = ['symbol', 'timestamp', 'open', 'high', 'low', 'close', 'volume', 'trade_count', 'vwap']
         result_df = result_df[columns]
         result_df = result_df.set_index(['symbol', 'timestamp'], drop=False)
-        write_intraday_detail_report(result_df, report_start, freq=5)
+        write_intraday_detail(result_df, report_start, freq=5)
 
 else:  # data_source == 'yfinance'
     symbols = get_symbols()
@@ -55,7 +52,7 @@ else:  # data_source == 'yfinance'
     for index, stock_symbol in enumerate(symbols):
         print(f"Collect S&P 500 Summary Info: {stock_symbol} ({index+1} of {len(symbols)})")
         ticker = yf.Ticker(stock_symbol)
-        history = ticker.history(period='1mo')
+        history = ticker.history(period='2y')
         history['timestamp'] = history.index
         history['symbol'] = stock_symbol
         if len(history) > 0:
@@ -70,12 +67,10 @@ else:  # data_source == 'yfinance'
 
     # Read the 5-minute Bars data and write to disk
     for report_start in trading_dates(start=start_date, end=end_date):
+        print(report_start)
         entries = list()  # list of DataFrame
         batch_end = report_start + pd.Timedelta('1d')  # End at 4:00 (when it closes)
-
-        print(report_start)
         for index, stock_symbol in enumerate(symbols):
-            # print(f"Collect S&P 500 Intraday Details: {stock_symbol} ({index+1} of {len(symbols)})")
             ticker = yf.Ticker(stock_symbol)
             history = ticker.history(interval='5m', start=date_string(report_start), end=date_string(batch_end))
             history['timestamp'] = history.index
@@ -86,4 +81,4 @@ else:  # data_source == 'yfinance'
         for column in columns:
             result_df.rename(columns={column: column.lower()}, inplace=True)
         result_df = result_df.set_index(['timestamp', 'symbol'], drop=False)
-        write_intraday_detail_report(result_df, report_start, freq=5)
+        write_intraday_detail(result_df, report_start, freq=5)

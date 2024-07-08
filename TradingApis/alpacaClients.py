@@ -7,7 +7,7 @@
 #   trading_client()
 #   historical_client()
 
-# Note: We use OS Environment variables to store our credentials so they don't appear in the codebase. Shame!
+# Note: We use OS Environment variables to store our credentials, so they don't appear in the codebase. Shame!
 
 # pip install alpaca-py
 
@@ -28,9 +28,9 @@ from alpaca.trading import TradingClient
 #        - AlpacaProdSecretKey
 
 
-global_trading_client = None
-global_historical_client = None
-global_data_stream = None
+global_trading_client = None  # client for executing trades
+global_historical_client = None  # client for making data requests
+global_data_stream = None  # client to set up real-time streaming of data
 
 
 paper_creds = {
@@ -46,7 +46,7 @@ prod_creds = {
 }
 
 
-# Define the different Trade and Query Modes and provide accessor
+# Define the different Trade and Query Modes and provide an accessor to set the modes
 
 
 class TradeMode(enum.Enum):
@@ -87,7 +87,7 @@ def trading_client():
             global_trading_client = TradingClient(prod_creds['APCA-API-KEY-ID'],
                                                   prod_creds['APCA-API-SECRET-KEY'],
                                                   paper=False)
-        else:
+        else:  # trade_mode == TradeMode.PAPER
             global_trading_client = TradingClient(paper_creds['APCA-API-KEY-ID'],
                                                   paper_creds['APCA-API-SECRET-KEY'],
                                                   paper=True)
@@ -100,7 +100,7 @@ def historical_client():
         if trade_mode == TradeMode.PRODUCTION:
             global_historical_client = StockHistoricalDataClient(prod_creds['APCA-API-KEY-ID'],
                                                                  prod_creds['APCA-API-SECRET-KEY'])
-        else:
+        else:  # trade_mode == TradeMode.PAPER
             global_historical_client = StockHistoricalDataClient(paper_creds['APCA-API-KEY-ID'],
                                                                  paper_creds['APCA-API-SECRET-KEY'])
     return global_historical_client

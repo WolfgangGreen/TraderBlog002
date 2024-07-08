@@ -1,11 +1,12 @@
-# dailySummaryReport holds the open, high, low, and close prices for each day for each stock
+# dailySummaryReport holds the open, high, low, close, volume, trade_count, and vwap for each day for each stock
 
 import pandas as pd
+
 from Util.pathsAndStockSets import bar_files_path
 
 # The report has these fields:
-#   symbol (index): the stock symbol for this entry
 #   timestamp (index): the timestamp for the date of this entry
+#   symbol (index): the stock symbol for this entry
 #   open: the open price for this stock on this date
 #   high: the highest price for this stock during this date
 #   low: the lowest price for this stock during this date
@@ -17,15 +18,17 @@ from Util.pathsAndStockSets import bar_files_path
 
 
 def write_daily_summary(df):
-    df = df.round(2)
+    df = df.round(4)
     df.to_csv(bar_files_path('dailySummary.csv'), index=True)
 
 
 def read_daily_summary():
     daily_price_gains = pd.read_csv(bar_files_path('dailySummary.csv'), parse_dates=['timestamp'])
-    daily_price_gains.set_index(['symbol', 'timestamp'], drop=False, inplace=True)
+    daily_price_gains.set_index(['timestamp', 'symbol'], drop=False, inplace=True)
     return daily_price_gains
 
+
+# Filter a daily_summary to just a single symbol, and re-index to timestamp
 
 def extract_symbol_summary(daily_summary, symbol, make_copy=True):
     symbol_summary = daily_summary[daily_summary['symbol'] == symbol]
@@ -36,7 +39,11 @@ def extract_symbol_summary(daily_summary, symbol, make_copy=True):
     return symbol_summary
 
 
-def extract_daily_summary_bar(daily_summary, symbol, date):
-    if (symbol, date) in daily_summary.index:
-        return True, daily_summary.loc[(symbol, date)]
+# See if the indicated (timestamp, symbol) is in the daily_summary:
+#   If yes: Return True and a Pandas Series for that row
+#   If no: Return False and None
+
+def extract_daily_summary_bar(daily_summary, timestamp, symbol):
+    if (timestamp, symbol) in daily_summary.index:
+        return True, daily_summary.loc[(timestamp, symbol)]
     return False, None

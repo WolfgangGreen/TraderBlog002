@@ -7,7 +7,7 @@ import pandas_market_calendars as mcal  # Also might need to pip install exchang
 
 # Some utils for creating our timestamps and extracting useful strings out of them
 
-# Convert a date string (e.g., '2024-06-24') or a date time string (e.g., '2024-06-24 09:30:00') into a timestamp.
+# Convert a date string (e.g., '2024-06-24') or a date-time string (e.g., '2024-06-24 09:30:00') into a timestamp.
 # We do everything in NY time by default
 
 def timestamp(string):
